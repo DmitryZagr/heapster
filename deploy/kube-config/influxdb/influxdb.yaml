@@ -1,9 +1,14 @@
-apiVersion: extensions/v1beta1
-kind: Deployment
+apiVersion: apps/v1
+kind: StatefulSet
 metadata:
   name: monitoring-influxdb
   namespace: cephfs
 spec:
+  selector:
+    matchLabels:
+      task: monitoring
+      k8s-app: influxdb
+  serviceName: monitoring-influxdb
   replicas: 1
   template:
     metadata:
@@ -17,9 +22,15 @@ spec:
         volumeMounts:
         - mountPath: /data
           name: influxdb-storage
-      volumes:
-      - name: influxdb-storage
-        emptyDir: {}
+  volumeClaimTemplates:
+  - metadata:
+      name: influxdb-storage
+    spec:
+      storageClassName: cephfs
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 10Gi
 ---
 apiVersion: v1
 kind: Service

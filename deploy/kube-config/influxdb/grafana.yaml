@@ -1,9 +1,14 @@
-apiVersion: extensions/v1beta1
-kind: Deployment
+apiVersion: apps/v1
+kind: StatefulSet
 metadata:
   name: monitoring-grafana
   namespace: cephfs
 spec:
+  selector:
+    matchLabels:
+      task: monitoring
+      k8s-app: grafana
+  serviceName: monitoring-grafana
   replicas: 1
   template:
     metadata:
@@ -16,6 +21,7 @@ spec:
         image: k8s.gcr.io/heapster-grafana-amd64:v4.4.3
         ports:
         - containerPort: 3000
+          hostPort: 3000
           protocol: TCP
         volumeMounts:
         - mountPath: /etc/ssl/certs
@@ -46,8 +52,15 @@ spec:
       - name: ca-certificates
         hostPath:
           path: /etc/ssl/certs
-      - name: grafana-storage
-        emptyDir: {}
+  volumeClaimTemplates:
+  - metadata:
+      name: grafana-storage
+    spec:
+      storageClassName: cephfs
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 10Gi
 ---
 apiVersion: v1
 kind: Service
